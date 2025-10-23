@@ -85,6 +85,18 @@ const osThreadAttr_t FPM383CTask_attributes = {
   .stack_size = sizeof(FPM383CTaskBuffer),
   .priority = (osPriority_t)osPriorityHigh,
 };
+/* Definitions for ServoTask */
+osThreadId_t ServoTaskHandle;
+uint32_t ServoTaskBuffer[128];
+osStaticThreadDef_t ServoTaskControlBlock;
+const osThreadAttr_t ServoTask_attributes = {
+  .name = "ServoTask",
+  .cb_mem = &ServoTaskControlBlock,
+  .cb_size = sizeof(ServoTaskControlBlock),
+  .stack_mem = &ServoTaskBuffer[0],
+  .stack_size = sizeof(ServoTaskBuffer),
+  .priority = (osPriority_t)osPriorityBelowNormal,
+};
 /* Definitions for UARTQueue */
 osMessageQueueId_t UARTQueueHandle;
 uint32_t UARTQueueBuffer[16 * sizeof(uint32_t)];
@@ -96,6 +108,17 @@ const osMessageQueueAttr_t UARTQueue_attributes = {
   .mq_mem = &UARTQueueBuffer,
   .mq_size = sizeof(UARTQueueBuffer)
 };
+/* Definitions for ServoQueue */
+osMessageQueueId_t ServoQueueHandle;
+uint8_t ServoQueueBuffer[8 * sizeof(uint16_t)];
+osStaticMessageQDef_t ServoQueueControlBlock;
+const osMessageQueueAttr_t ServoQueue_attributes = {
+  .name = "ServoQueue",
+  .cb_mem = &ServoQueueControlBlock,
+  .cb_size = sizeof(ServoQueueControlBlock),
+  .mq_mem = &ServoQueueBuffer,
+  .mq_size = sizeof(ServoQueueBuffer)
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -105,6 +128,7 @@ const osMessageQueueAttr_t UARTQueue_attributes = {
 void StartLEDTask(void *argument);
 void StartUARTTask(void *argument);
 void StartFPM383CTask(void *argument);
+void StartServoTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -134,6 +158,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of UARTQueue */
   UARTQueueHandle = osMessageQueueNew(16, sizeof(uint32_t), &UARTQueue_attributes);
 
+  /* creation of ServoQueue */
+  ServoQueueHandle = osMessageQueueNew(8, sizeof(uint16_t), &ServoQueue_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -147,6 +174,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of FPM383CTask */
   FPM383CTaskHandle = osThreadNew(StartFPM383CTask, NULL, &FPM383CTask_attributes);
+
+  /* creation of ServoTask */
+  ServoTaskHandle = osThreadNew(StartServoTask, NULL, &ServoTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -201,6 +231,21 @@ void StartFPM383CTask(void *argument) {
   /* Infinite loop */
   FPM383CTask();
   /* USER CODE END StartFPM383CTask */
+}
+
+/* USER CODE BEGIN Header_StartServoTask */
+void ServoTask(void);
+/**
+* @brief Function implementing the ServoTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartServoTask */
+void StartServoTask(void *argument) {
+  /* USER CODE BEGIN StartServoTask */
+  /* Infinite loop */
+  ServoTask();
+  /* USER CODE END StartServoTask */
 }
 
 /* Private application code --------------------------------------------------*/

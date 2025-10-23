@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string_view>
 
+#include "cmsis_os.h"
+
 extern osMessageQueueId_t UARTQueueHandle;
 
 enum class UARTMessageType : uint8_t {
@@ -12,7 +14,11 @@ enum class UARTMessageType : uint8_t {
 	FingerprintEnrollComplete,
 	FingerprintMatchStart,
 	FingerprintMatchComplete,
-	Error
+	FingerprintUpdateFeatureAfterMatch,
+	ServoMovingToUnlockPosition,
+	ServoMovingToResetPosition,
+	ServoRelease,
+	FingerprintError
 };
 
 // 8bit + 8bit + 16bit
@@ -48,8 +54,16 @@ inline constexpr std::string_view to_string(UARTMessageType type) {
 		return "FingerprintMatchStart";
 	case UARTMessageType::FingerprintMatchComplete:
 		return "FingerprintMatchComplete";
-	case UARTMessageType::Error:
-		return "Error";
+	case UARTMessageType::FingerprintUpdateFeatureAfterMatch:
+		return "FingerprintUpdateFeatureAfterMatch";
+	case UARTMessageType::FingerprintError:
+		return "FingerprintError";
+	case UARTMessageType::ServoMovingToUnlockPosition:
+		return "ServoMovingToUnlockPosition";
+	case UARTMessageType::ServoMovingToResetPosition:
+		return "ServoMovingToResetPosition";
+	case UARTMessageType::ServoRelease:
+		return "ServoRelease";
 	default:
 		return "Unknown";
 	}

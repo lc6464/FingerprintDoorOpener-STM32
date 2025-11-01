@@ -12,13 +12,15 @@ enum class UARTMessageType : uint8_t {
 	FingerprintEnrollStart,
 	FingerprintEnrollStep,
 	FingerprintEnrollComplete,
+	FingerprintEnterSleepMode,
 	FingerprintMatchStart,
 	FingerprintMatchComplete,
 	FingerprintUpdateFeatureAfterMatch,
+	FingerprintError,
 	ServoMovingToUnlockPosition,
 	ServoMovingToResetPosition,
 	ServoRelease,
-	FingerprintError
+	LEDControl,
 };
 
 // 8bit + 8bit + 16bit
@@ -50,6 +52,8 @@ inline constexpr std::string_view to_string(UARTMessageType type) {
 		return "FingerprintEnrollStep";
 	case UARTMessageType::FingerprintEnrollComplete:
 		return "FingerprintEnrollComplete";
+	case UARTMessageType::FingerprintEnterSleepMode:
+		return "FingerprintEnterSleepMode";
 	case UARTMessageType::FingerprintMatchStart:
 		return "FingerprintMatchStart";
 	case UARTMessageType::FingerprintMatchComplete:
@@ -64,6 +68,8 @@ inline constexpr std::string_view to_string(UARTMessageType type) {
 		return "ServoMovingToResetPosition";
 	case UARTMessageType::ServoRelease:
 		return "ServoRelease";
+	case UARTMessageType::LEDControl:
+		return "LEDControl";
 	default:
 		return "Unknown";
 	}

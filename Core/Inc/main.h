@@ -57,11 +57,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define FingerprintModuleTouchSensor_Pin GPIO_PIN_1
-#define FingerprintModuleTouchSensor_GPIO_Port GPIOA
-#define FingerprintModuleTouchSensor_EXTI_IRQn EXTI1_IRQn
 #define LED_Pin GPIO_PIN_8
 #define LED_GPIO_Port GPIOA
+#define FingerprintModuleTouchSensor_Pin GPIO_PIN_2
+#define FingerprintModuleTouchSensor_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

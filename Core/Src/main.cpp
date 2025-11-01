@@ -29,6 +29,9 @@ int main(void) {
 	MX_TIM6_Init(); // 1kHz
 	MX_TIM8_Init(); // Channel 1 PWM Output
 
+	// 启动 UART2 空闲中断
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+
 	osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
 	MX_FREERTOS_Init();
 
@@ -39,9 +42,6 @@ int main(void) {
 	HAL_TIM_Base_Start_IT(&htim6); // 启动定时器
 	HAL_TIM_Base_Start(&htim8); // 启动定时器
 	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1); // 启动 PWM 输出
-
-	// 启动 UART2 空闲中断
-	__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
 
 	StartReceiveDMA();
 

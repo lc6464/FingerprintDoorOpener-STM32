@@ -124,6 +124,85 @@ public:
 		bool Enable360Recognition = false;
 	};
 
+	// LED 控制相关类型定义
+	class LEDControl {
+	public:
+		// LED 控制模式
+		enum class Mode : uint8_t {
+			Off = 0,              // 关闭 LED 灯
+			On = 1,               // 开启 LED 灯
+			AutoOnTouch = 2,      // 当手指触碰时自动点亮 LED 灯
+			PWM = 3,              // PWM 控制 LED 灯（呼吸灯）
+			Blink = 4             // 闪烁 LED 灯
+		};
+
+		// LED 灯光颜色
+		enum class Color : uint8_t {
+			NoControl = 0,        // 无颜色控制
+			Green = 1,            // 绿色
+			Red = 2,              // 红色
+			RedGreen = 3,         // 红色+绿色
+			Blue = 4,             // 蓝色
+			RedBlue = 5,          // 红色+蓝色
+			GreenBlue = 6,        // 绿色+蓝色
+			RGB = 7               // 红色+绿色+蓝色
+		};
+
+		// PWM 模式参数
+		struct PWMParams {
+			uint8_t MaxDutyCycle;     // 最大占空比（范围：0~100）
+			uint8_t MinDutyCycle;     // 最小占空比（范围：0~100）
+			uint8_t ChangeRate;       // 占空比每秒变化速率（单位：1%/s，范围：0~100）
+		};
+
+		// 闪烁模式参数
+		struct BlinkParams {
+			uint8_t OnDuration;       // LED 点亮时长（单位：10ms，范围：0~255，即 0~2.55秒）
+			uint8_t OffDuration;      // LED 熄灭时长（单位：10ms，范围：0~255，即 0~2.55秒）
+			uint8_t CycleCount;       // 闪烁周期数量（范围：0~255次）
+		};
+
+		// 原始参数数组（用于协议传输）
+		using RawParams = std::array<uint8_t, 3>;
+
+		// LED 状态配置
+		struct ControlInfo {
+			Mode ControlMode;         // 控制模式
+			Color LightColor;         // 灯光颜色
+
+			union {
+				PWMParams Pwm;        // PWM 模式参数 (ControlMode == PWM)
+				BlinkParams Blink;    // 闪烁模式参数 (ControlMode == Blink)
+				RawParams Raw;        // 原始参数数组（用于协议传输）
+			} Params;
+
+			// 构造函数：简单模式 (Off/On/AutoOnTouch)
+			constexpr ControlInfo(Mode mode, Color color = Color::NoControl)
+				: ControlMode(mode), LightColor(color), Params{ .Raw = { 0, 0, 0 } } { }
+
+			// 构造函数：PWM 模式
+			constexpr ControlInfo(Color color, PWMParams pwm)
+				: ControlMode(Mode::PWM), LightColor(color), Params{ .Pwm = pwm } { }
+
+			// 构造函数：闪烁模式
+			constexpr ControlInfo(Color color, BlinkParams blink)
+				: ControlMode(Mode::Blink), LightColor(color), Params{ .Blink = blink } { }
+
+			// 获取原始参数字节数组（用于协议传输）
+			inline const RawParams &GetRawParams() const {
+				return Params.Raw;
+			}
+		};
+
+	private:
+		// 删除构造函数，防止实例化 LED 类本身
+		LEDControl() = delete;
+		~LEDControl() = delete;
+		LEDControl(const LEDControl &) = delete;
+		LEDControl &operator=(const LEDControl &) = delete;
+	};
+
+
 	/**
 	 * @brief 命令执行结果的组合返回类型
 	 * @details 可通过 auto [status, errCode] = ... 进行解构
@@ -212,12 +291,26 @@ public:
 	 */
 	std::pair<CommandResult, SystemPolicy> GetSystemPolicy();
 
+	// /**
+	//  * @brief 配置系统策略
+	//  * @param policy 要设置的策略
+	//  * @return 操作状态和模块错误码
+	//  */
+	// CommandResult SetSystemPolicy(const SystemPolicy &policy);
+
 	/**
-	 * @brief 配置系统策略
-	 * @param policy 要设置的策略
+	 * @brief 让模块进入休眠模式以节省功耗
+	 * @param isDeepSleep 是否进入深度休眠模式（默认为普通休眠）
 	 * @return 操作状态和模块错误码
 	 */
-	CommandResult SetSystemPolicy(const SystemPolicy &policy);
+	CommandResult EnterSleepMode(bool isDeepSleep = false);
+
+	/**
+	 * @brief 设置 LED 控制信息
+	 * @param controlInfo LED 控制信息
+	 * @return 操作状态和模块错误码
+	 */
+	CommandResult SetLEDControl(const LEDControl::ControlInfo &controlInfo);
 
 
 	// --- 异步方法 ---
@@ -251,13 +344,13 @@ public:
 	void UartRxCallback(uint16_t size);
 
 private:
-	// --- 协议常量 (参考 FPM383C 用户手册 V1.2.0) ---
+	// --- 协议常量 ---
 	static constexpr std::array<uint8_t, 8> FRAME_HEADER = { 0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A };
 	static constexpr uint32_t DEFAULT_PASSWORD = 0x00000000;
 	static constexpr uint32_t DEFAULT_TIMEOUT_MS = 2000;
 	static constexpr uint32_t AUTO_ENROLL_TIMEOUT_MS = 15000; // 注册操作较耗时，需要更长超时
 
-	// --- 命令码 (根据手册整理) ---
+	// --- 命令码 ---
 	static constexpr uint16_t CMD_AUTO_ENROLL = 0x0118;          // 自动注册
 	static constexpr uint16_t CMD_MATCH_SYNC = 0x0123;           // 同步 1:N 匹配
 	static constexpr uint16_t CMD_MATCH_ASYNC = 0x0121;          // 异步 1:N 匹配
@@ -271,6 +364,8 @@ private:
 	static constexpr uint16_t CMD_UPDATE_FEATURE = 0x0116;       // 更新特征值（自学习）
 	static constexpr uint16_t CMD_GET_SYSTEM_POLICY = 0x02FB;    // 获取系统策略
 	static constexpr uint16_t CMD_SET_SYSTEM_POLICY = 0x02FC;    // 设置系统策略
+	static constexpr uint16_t CMD_ENTER_SLEEP_MODE = 0x020C;     // 进入休眠模式
+	static constexpr uint16_t CMD_SET_LED_CONTROL = 0x020F;      // 设置 LED 控制信息
 
 	// --- 缓冲区大小 ---
 	static constexpr size_t RX_BUFFER_SIZE = 256;

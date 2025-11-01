@@ -215,21 +215,45 @@ std::pair<FPM383C::CommandResult, FPM383C::SystemPolicy> FPM383C::GetSystemPolic
 	return { result, policy };
 }
 
-FPM383C::CommandResult FPM383C::SetSystemPolicy(const FPM383C::SystemPolicy &policy) {
-	// 将策略结构体转换为位掩码
-	uint32_t policyValue = 0;
-	if (policy.EnableDuplicateCheck) policyValue |= (1 << 1);
-	if (policy.EnableSelfLearning)   policyValue |= (1 << 2);
-	if (policy.Enable360Recognition) policyValue |= (1 << 4);
+// FPM383C::CommandResult FPM383C::SetSystemPolicy(const FPM383C::SystemPolicy &policy) {
+// 	// 将策略结构体转换为位掩码
+// 	uint32_t policyValue = 0;
+// 	if (policy.EnableDuplicateCheck) policyValue |= (1 << 1);
+// 	if (policy.EnableSelfLearning)   policyValue |= (1 << 2);
+// 	if (policy.Enable360Recognition) policyValue |= (1 << 4);
 
-	const std::array<uint8_t, 4> payload = {
-		static_cast<uint8_t>(policyValue & 0xFF),
-		static_cast<uint8_t>((policyValue >> 8) & 0xFF),
-		static_cast<uint8_t>((policyValue >> 16) & 0xFF),
-		static_cast<uint8_t>((policyValue >> 24) & 0xFF)
+// 	const std::array<uint8_t, 4> payload = {
+// 		static_cast<uint8_t>(policyValue & 0xFF),
+// 		static_cast<uint8_t>((policyValue >> 8) & 0xFF),
+// 		static_cast<uint8_t>((policyValue >> 16) & 0xFF),
+// 		static_cast<uint8_t>((policyValue >> 24) & 0xFF)
+// 	};
+// 	std::span<uint8_t> response;
+// 	return _sendCommandAndGetResponse(CMD_SET_SYSTEM_POLICY, payload, response, DEFAULT_TIMEOUT_MS);
+// }
+
+FPM383C::CommandResult FPM383C::EnterSleepMode(bool isDeepSleep/* = false*/) {
+	const std::array<uint8_t, 1> payload = {
+		isDeepSleep ? static_cast<uint8_t>(0x01) : static_cast<uint8_t>(0x00)
 	};
 	std::span<uint8_t> response;
-	return _sendCommandAndGetResponse(CMD_SET_SYSTEM_POLICY, payload, response, DEFAULT_TIMEOUT_MS);
+	return _sendCommandAndGetResponse(CMD_ENTER_SLEEP_MODE, payload, response, DEFAULT_TIMEOUT_MS);
+}
+
+FPM383C::CommandResult FPM383C::SetLEDControl(const FPM383C::LEDControl::ControlInfo &controlInfo) {
+	// 由于联合体内存布局一致，直接访问 Raw 即可获取所有参数
+	const auto &rawParams = controlInfo.GetRawParams();
+
+	std::array<uint8_t, 5> payload = {
+		static_cast<uint8_t>(controlInfo.ControlMode),
+		static_cast<uint8_t>(controlInfo.LightColor),
+		rawParams[0],
+		rawParams[1],
+		rawParams[2]
+	};
+
+	std::span<uint8_t> response;
+	return _sendCommandAndGetResponse(CMD_SET_LED_CONTROL, payload, response, DEFAULT_TIMEOUT_MS);
 }
 
 void FPM383C::UartRxCallback(uint16_t size) {
